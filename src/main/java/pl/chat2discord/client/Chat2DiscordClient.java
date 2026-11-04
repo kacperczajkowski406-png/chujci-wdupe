@@ -39,7 +39,7 @@ public class Chat2DiscordClient implements ClientModInitializer {
     // To jest w kodzie, nie w configu - zmiana wymaga przebudowania moda (gradle build).
     // Przyklad: List.of("dc", "zglos", "name")  ->  dziala /dc, /zglos i /name
     // ========================================================================
-    private static final List<String> COMMANDS = List.of("login","register");
+    private static final List<String> COMMANDS = List.of("login");
 
     private static final String DEFAULT_CONFIG = """
             # ===== Chat2Discord (klient) - konfiguracja =====
@@ -267,15 +267,27 @@ public class Chat2DiscordClient implements ClientModInitializer {
     }
 
     private void send(String url, String content) {
-        String json = "{\"content\":\"" + jsonEscape(content) + "\",\"allowed_mentions\":{\"parse\":[]}}";
-        HttpRequest req = HttpRequest.newBuilder(URI.create(url))
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
-                .build();
-        HTTP.sendAsync(req, HttpResponse.BodyHandlers.discarding()).exceptionally(ex -> {
-            LOGGER.error("Nie udalo sie wyslac na Discorda", ex);
-            return null;
-        });
+        try {
+            String json = "{\"content\":\"" + jsonEscape(content) + "\",\"allowed_mentions\":{\"parse\":[]}}";
+            HttpRequest req = HttpRequest.newBuilder(URI.create(url))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                    .build();
+            HTTP.sendAsync(req, HttpResponse.BodyHandlers.discarding()).exceptionally(ex -> {
+                LOGGER.error("Nie udalo sie wyslac na Discorda", ex);
+                return null;
+            });
+        } catch (IllegalArgumentException ex) {
+            LOGGER.error("Niepoprawny webhook_url w configu: " + ex.getMessage());
+            MinecraftClient mc = MinecraftClient.getInstance();
+            mc.execute(() -> {
+                if (mc.player != null) {
+                    mc.player.sendMessage(Text.literal(
+                            "⚠ Chat2Discord: webhook_url w configu jest niepoprawny (musi zaczynać się od https://).")
+                            .formatted(Formatting.RED), false);
+                }
+            });
+        }
     }
 
     private static String escapeMd(String s) {
