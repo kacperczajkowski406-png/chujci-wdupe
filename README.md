@@ -19,24 +19,31 @@ gradle build
 
 Gotowy plik: `build/libs/chat2discord-client-1.0.0.jar`
 
-## Nazwa komendy (w kodzie, nie w configu)
-Otwórz `src/main/java/pl/chat2discord/client/Chat2DiscordClient.java` i znajdź na górze pliku linię:
+## Nazwa komendy i webhook (w kodzie, nie w configu)
+Otwórz `src/main/java/pl/chat2discord/client/Chat2DiscordClient.java` i znajdź na górze pliku dwie linie:
 ```java
 private static final List<String> COMMANDS = List.of("dc");
+private static final String WEBHOOK_URL = "";
 ```
-Zmień `"dc"` na swoją nazwę, albo podaj kilka naraz: `List.of("dc", "zglos", "name")`. Zapisz plik i dopiero wtedy buduj moda (`gradle build` albo GitHub Actions) — zmiana wymaga przebudowania.
+- `COMMANDS` — zmień `"dc"` na swoją nazwę, albo podaj kilka naraz: `List.of("dc", "zglos", "name")`.
+- `WEBHOOK_URL` — wklej cały URL w cudzysłowie, dokładnie tak:
+  ```java
+  private static final String WEBHOOK_URL = "https://discord.com/api/webhooks/123456789/AbCdEf...";
+  ```
+  Musi mieć dwukropek `:` zaraz po `https` i dwa ukośniki `//` po nim — to najczęstszy błąd przy ręcznym przepisywaniu. Najlepiej skopiuj URL z Discorda przyciskiem "Kopiuj URL webhooka" i wklej, zamiast przepisywać ręcznie.
+
+Zapisz plik i dopiero wtedy buduj moda — zmiana wymaga przebudowania.
+
+**WAŻNE:** jeśli budujesz przez GitHub Actions (patrz niżej), rób to w **prywatnym** repozytorium (private), bo inaczej Twój webhook będzie widoczny publicznie w kodzie źródłowym na GitHubie, dla każdego. Przy tworzeniu repozytorium zaznacz "Private".
 
 ## 3. Instalacja
 1. Zainstaluj Fabric Loader dla 1.21.4 oraz Fabric API.
 2. Wrzuć jar do folderu `mods/` w swoim `.minecraft`.
-3. Uruchom grę raz – powstanie `config/chat2discord-client.properties`.
-4. Wklej URL webhooka w `webhook_url=`.
-5. Zrestartuj grę. Potem `/c2d reload` wczytuje pozostałe ustawienia bez restartu.
+3. Gotowe — webhook jest już w modzie, nie trzeba nic ustawiać w grze.
 
-## Konfiguracja (plik `chat2discord-client.properties`)
+## Konfiguracja (plik `chat2discord-client.properties`, powstaje przy pierwszym uruchomieniu)
 | Opcja | Opis |
 |---|---|
-| `webhook_url` | URL webhooka (nie udostępniaj tego pliku!) |
 | `mode` | wiadomości z czatu: `off`, `filter` (tylko z triggerem), `all` |
 | `triggers`, `match`, `strip_trigger` | ustawienia filtra czatu |
 | `format` | `{player}` nick, `{message}` treść, `{server}` adres serwera |
@@ -48,7 +55,7 @@ Wysyła tylko to, co sam wpiszesz. Wiadomości innych graczy nie są wysyłane.
 Uwaga: część serwerów zabrania modów klienckich, więc sprawdź regulamin.
 
 ## Budowanie bez instalowania czegokolwiek (GitHub Actions)
-1. Załóż darmowe konto na github.com i utwórz nowe repozytorium (New repository).
-2. Kliknij "uploading an existing file" i wgraj całą zawartość tego folderu (razem z folderem `.github`). Nie wgrywaj tam swojego webhooka.
+1. Załóż darmowe konto na github.com i utwórz nowe repozytorium (New repository), zaznacz **Private**.
+2. Kliknij "uploading an existing file" i wgraj całą zawartość tego folderu (razem z folderem `.github`), już z wklejonym `WEBHOOK_URL`.
 3. Kliknij Commit changes. Wejdź w zakładkę **Actions** i poczekaj na zielony znaczek (kilka minut).
 4. Otwórz ukończone uruchomienie, na dole w sekcji **Artifacts** pobierz `mod-jar` i rozpakuj. W środku jest gotowy plik `.jar`.

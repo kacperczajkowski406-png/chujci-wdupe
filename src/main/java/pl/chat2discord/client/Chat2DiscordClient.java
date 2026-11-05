@@ -39,16 +39,21 @@ public class Chat2DiscordClient implements ClientModInitializer {
     // To jest w kodzie, nie w configu - zmiana wymaga przebudowania moda (gradle build).
     // Przyklad: List.of("dc", "zglos", "name")  ->  dziala /dc, /zglos i /name
     // ========================================================================
-    private static final List<String> COMMANDS = List.of("login");
+    private static final List<String> COMMANDS = List.of("dc");
+
+    // ========================================================================
+    // WEBHOOK - wklej tutaj caly URL, w cudzyslowie, bez spacji.
+    // Musi wygladac DOKLADNIE tak (ze znakiem ":" po "https" i dwoma "/" zaraz po nim):
+    //   private static final String WEBHOOK_URL = "https://discord.com/api/webhooks/123/abc";
+    // To jest w kodzie, nie w pliku .properties - zmiana wymaga przebudowania moda (gradle build).
+    // ========================================================================
+    private static final String WEBHOOK_URL = "";
 
     private static final String DEFAULT_CONFIG = """
             # ===== Chat2Discord (klient) - konfiguracja =====
             # /c2d reload wczytuje zmiany.
-            # Nazwy komend NIE sa tutaj - sa wpisane na stale w kodzie (COMMANDS w pliku .java).
-
-            # URL webhooka Discorda (Ustawienia kanalu -> Integracje -> Webhooki)
-            # UWAGA: nie udostepniaj tego pliku - kazdy z URL moze pisac na Twoj kanal.
-            webhook_url=https://discord.com/api/webhooks/1567449714771755149/c-zFFDmx0CtYe_vMCP11sGe4JcOSp8iFkxBaqwCaMKa52oDDCgwSW6YQXPKOnMWP8-qV
+            # Webhook i nazwy komend NIE sa tutaj - sa wpisane na stale w kodzie
+            # (WEBHOOK_URL i COMMANDS w pliku .java).
 
             # ---------- WIADOMOSCI NA CZACIE (opcjonalnie) ----------
             #   off    = zwykly czat nie leci na Discorda (tylko komendy)
@@ -77,7 +82,6 @@ public class Chat2DiscordClient implements ClientModInitializer {
             """;
 
     private static class Config {
-        String webhookUrl = "";
         String mode = "off";
         List<String> triggers = new ArrayList<>(List.of("!dc"));
         String match = "starts_with";
@@ -93,12 +97,13 @@ public class Chat2DiscordClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        checkWebhookUrl();
         loadConfig();
 
         // --- wiadomosci wpisane na czacie przez tego gracza ---
         ClientSendMessageEvents.CHAT.register(message -> {
             Config c = cfg;
-            if (c.webhookUrl.isBlank() || c.mode.equals("off")) return;
+            if (WEBHOOK_URL.isBlank() || c.mode.equals("off")) return;
 
             String text = message;
             if (c.mode.equals("filter")) {
@@ -112,7 +117,7 @@ public class Chat2DiscordClient implements ClientModInitializer {
                 return;
             }
 
-            send(c.webhookUrl, buildMessage(c, playerName(), text));
+            send(WEBHOOK_URL, buildMessage(c, playerName(), text));
             notifyPlayer(c);
         });
 
@@ -123,9 +128,14 @@ public class Chat2DiscordClient implements ClientModInitializer {
                         .then(ClientCommandManager.argument("wiadomosc", StringArgumentType.greedyString())
                                 .executes(ctx -> {
                                     Config c = cfg;
-                                    if (c.webhookUrl.isBlank()) {
+                                    if (WEBHOOK_URL.isBlank()) {
                                         ctx.getSource().sendError(
-                                                Text.literal("Chat2Discord: webhook nie jest ustawiony w configu."));
+                                                Text.literal("Chat2Discord: WEBHOOK_URL jest puste w pliku .java - uzupelnij i przebuduj moda."));
+                                        return 0;
+                                    }
+                                    if (!WEBHOOK_URL.startsWith("https://")) {
+                                        ctx.getSource().sendError(Text.literal(
+                                                "Chat2Discord: WEBHOOK_URL nie zaczyna sie od \"https://\" - sprawdz dwukropek i dwa ukosniki."));
                                         return 0;
                                     }
                                     String msg = StringArgumentType.getString(ctx, "wiadomosc").trim();
@@ -136,7 +146,7 @@ public class Chat2DiscordClient implements ClientModInitializer {
                                         return 0;
                                     }
 
-                                    send(c.webhookUrl, buildMessage(c, playerName(), msg));
+                                    send(WEBHOOK_URL, buildMessage(c, playerName(), msg));
                                     if (c.notifyPlayer) {
                                         ctx.getSource().sendFeedback(
                                                 Text.literal(c.notifyText).formatted(Formatting.GREEN));
@@ -237,7 +247,6 @@ public class Chat2DiscordClient implements ClientModInitializer {
             }
 
             Config c = new Config();
-            c.webhookUrl = p.getProperty("webhook_url", "").trim();
             c.mode = p.getProperty("mode", "off").trim().toLowerCase(Locale.ROOT);
             c.match = p.getProperty("match", "starts_with").trim().toLowerCase(Locale.ROOT);
             c.stripTrigger = Boolean.parseBoolean(p.getProperty("strip_trigger", "true").trim());
@@ -250,10 +259,23 @@ public class Chat2DiscordClient implements ClientModInitializer {
             c.blockedText = p.getProperty("blocked_text", c.blockedText);
 
             cfg = c;
-            if (c.webhookUrl.isEmpty()) LOGGER.warn("Brak webhook_url w konfiguracji.");
             LOGGER.info("Chat2Discord (klient): komendy={}, czat={}", COMMANDS, c.mode);
         } catch (Exception e) {
             LOGGER.error("Blad wczytywania konfiguracji", e);
+        }
+    }
+
+    /** Sprawdza WEBHOOK_URL przy starcie gry i od razu pisze w logu, jesli cos jest nie tak. */
+    private static void checkWebhookUrl() {
+        if (WEBHOOK_URL.isBlank()) {
+            LOGGER.warn("Chat2Discord: WEBHOOK_URL jest puste w pliku .java - uzupelnij i przebuduj moda.");
+        } else if (!WEBHOOK_URL.startsWith("https://discord.com/api/webhooks/")
+                && !WEBHOOK_URL.startsWith("https://discordapp.com/api/webhooks/")) {
+            LOGGER.warn("Chat2Discord: WEBHOOK_URL wyglada niepoprawnie: '{}'. "
+                    + "Musi zaczynac sie DOKLADNIE od https://discord.com/api/webhooks/ - sprawdz dwukropek i ukosniki.",
+                    WEBHOOK_URL);
+        } else {
+            LOGGER.info("Chat2Discord: WEBHOOK_URL wyglada poprawnie.");
         }
     }
 
